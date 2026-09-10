@@ -1,0 +1,83 @@
+[gd_scene format=3 uid="uid://mehvb6jm2ftu"]
+
+[ext_resource type="Script" uid="uid://b8k1bye2v4xbt" path="res://code/manager.gd" id="1_0kxa1"]
+[ext_resource type="PackedScene" uid="uid://cehfhxfxjmws" path="res://escenas/player/player.tscn" id="2_0kxa1"]
+[ext_resource type="PackedScene" uid="uid://bb8pann6qqh4n" path="res://escenas/planetas/marte.tscn" id="2_jumxm"]
+[ext_resource type="PackedScene" uid="uid://csqb7umsvdwo2" path="res://escenas/planetas/luna.tscn" id="3_a8p2b"]
+[ext_resource type="Script" uid="uid://wb3esh6s1oje" path="res://code/orbitasrender.gd" id="4_26pgj"]
+[ext_resource type="Script" uid="uid://c7wwtwe3akjyw" path="res://code/ui.gd" id="5_dkga6"]
+[ext_resource type="Script" uid="uid://b6qhay0j5m0vf" path="res://code/cursor.gd" id="7_68mvh"]
+[ext_resource type="Texture2D" uid="uid://cxigwtm0f8muj" path="res://icon.png" id="7_o8odp"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_0kxa1"]
+
+[sub_resource type="Sky" id="Sky_jumxm"]
+sky_material = SubResource("ProceduralSkyMaterial_0kxa1")
+
+[sub_resource type="Environment" id="Environment_0kxa1"]
+background_mode = 1
+sky = SubResource("Sky_jumxm")
+
+[sub_resource type="BoxMesh" id="BoxMesh_jumxm"]
+
+[node name="Perseo" type="Node3D" unique_id=1612300892]
+script = ExtResource("1_0kxa1")
+sol = ExtResource("2_jumxm")
+mercurio = ExtResource("2_jumxm")
+venus = ExtResource("2_jumxm")
+tierra = ExtResource("2_jumxm")
+marte = ExtResource("2_jumxm")
+jupiter = ExtResource("2_jumxm")
+saturno = ExtResource("2_jumxm")
+urano = ExtResource("2_jumxm")
+neptuno = ExtResource("2_jumxm")
+luna = ExtResource("3_a8p2b")
+time_speed = 0.01
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=12614364]
+environment = SubResource("Environment_0kxa1")
+
+[node name="CharacterBody3D" parent="." unique_id=493916035 node_paths=PackedStringArray("webcam_controller") instance=ExtResource("2_0kxa1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 100)
+webcam_controller = NodePath("")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=377433623]
+transform = Transform3D(100, 0, 0, 0, 10, 0, 0, 0, 100, 0, 0, 0)
+visible = false
+mesh = SubResource("BoxMesh_jumxm")
+
+[node name="Orbitas" type="Node3D" parent="." unique_id=1020565622]
+script = ExtResource("4_26pgj")
+orbit_color = Color(1, 1, 1, 0.627451)
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=1573245572 node_paths=PackedStringArray("orbit_renderer")]
+script = ExtResource("5_dkga6")
+orbit_renderer = NodePath("../Orbitas")
+
+[node name="orbitaboton" type="CheckBox" parent="UI" unique_id=380514944]
+offset_left = 40.0
+offset_top = 41.0
+offset_right = 115.0
+offset_bottom = 72.0
+
+[node name="Cursor" type="Control" parent="UI" unique_id=657526315]
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("7_68mvh")
+
+[node name="TextureRect" type="TextureRect" parent="UI/Cursor" unique_id=1090350655]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture = ExtResource("7_o8odp")
+expand_mode = 1
