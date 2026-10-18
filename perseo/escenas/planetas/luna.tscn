@@ -2,16 +2,83 @@
 
 [ext_resource type="Script" uid="uid://bagykmno7uich" path="res://code/luna.gd" id="1_bmxs3"]
 
-[sub_resource type="SphereMesh" id="SphereMesh_bmxs3"]
+[sub_resource type="Shader" id="Shader_bmxs3"]
+code = "
+shader_type spatial;
+render_mode unshaded, cull_back;
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_g4jjf"]
-emission_enabled = true
-emission = Color(0.61960787, 0.2627451, 0.9019608, 1)
-emission_energy_multiplier = 5.0
+uniform sampler2D tex_ruido : repeat_enable, hint_default_white;
+uniform vec3 col_centro : source_color = vec3(0.95, 0.95, 0.94);
+uniform vec3 col_medio1 : source_color = vec3(0.65, 0.65, 0.63);
+uniform vec3 col_medio2 : source_color = vec3(0.35, 0.35, 0.33);
+uniform vec3 col_borde  : source_color = vec3(0.11, 0.12, 0.15);
+
+uniform float grano_risografia = 0.14;
+uniform float brillo_superficie = 1.35;
+uniform float intensidad_halo = 1.2;
+
+float hash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+void fragment() {
+	// En Godot 4, NORMAL.z es 1.0 mirando directo a cámara y 0.0 en el borde
+	float ndotv = clamp(NORMAL.z, 0.0, 1.0);
+	
+	// Luz aerógrafo desplazada arriba a la izquierda para dar volumen 3D
+	vec3 dir_luz = normalize(vec3(-0.3, 0.35, 0.88));
+	float luz = clamp(dot(normalize(NORMAL), dir_luz), 0.0, 1.0);
+	
+	// Textura procedural de cráteres y manchas para no depender de si el archivo .jpg es oscuro
+	float n1 = texture(tex_ruido, UV * 3.0).r;
+	float n2 = texture(tex_ruido, UV * 8.0 + vec2(0.3, 0.7)).r;
+	float relieve_crateres = ((n1 * 0.6 + n2 * 0.4) - 0.5) * 0.45;
+	
+	float banda = clamp(mix(ndotv, luz, 0.55) + relieve_crateres, 0.0, 1.0);
+	
+	// Grano risográfico
+	float grano = (hash(UV * 600.0 + FRAGCOORD.xy * 0.25) - 0.5) * grano_risografia;
+	float b = clamp(banda + grano, 0.0, 1.0);
+	
+	// Mapeo de las 4 bandas de color
+	vec3 col = col_borde;
+	col = mix(col, col_medio2, smoothstep(0.08, 0.35, b));
+	col = mix(col, col_medio1, smoothstep(0.35, 0.65, b));
+	col = mix(col, col_centro, smoothstep(0.65, 0.88, b));
+	
+	// Halo brillante en el borde para que siempre resalte en el espacio negro
+	float rim = pow(1.0 - ndotv, 2.5);
+	vec3 col_rim = mix(col_medio1, col_centro, 0.5);
+	
+	ALBEDO = (col * brillo_superficie) + (col_rim * rim * intensidad_halo);
+}
+"
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_g4jjf"]
+frequency = 0.03
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_3uf5d"]
+noise = SubResource("FastNoiseLite_g4jjf")
+seamless = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_whgbj"]
+render_priority = 0
+shader = SubResource("Shader_bmxs3")
+shader_parameter/tex_ruido = SubResource("NoiseTexture2D_3uf5d")
+shader_parameter/col_centro = Color(0.9490196, 0.9490196, 0.9411765, 1)
+shader_parameter/col_medio1 = Color(0.6509804, 0.6509804, 0.63529414, 1)
+shader_parameter/col_medio2 = Color(0.34901962, 0.34901962, 0.3372549, 1)
+shader_parameter/col_borde = Color(0.10980392, 0.12156863, 0.14901961, 1)
+shader_parameter/grano_risografia = 0.14
+shader_parameter/brillo_superficie = 1.35
+shader_parameter/intensidad_halo = 1.2
+
+[sub_resource type="SphereMesh" id="SphereMesh_bmxs3"]
 
 [node name="Luna" type="Node3D" unique_id=1357100028]
 script = ExtResource("1_bmxs3")
+brillo_superficie = 0.0
 
 [node name="MeshInstance3D2" type="MeshInstance3D" parent="." unique_id=1085546221]
+material_override = SubResource("ShaderMaterial_whgbj")
 mesh = SubResource("SphereMesh_bmxs3")
-surface_material_override/0 = SubResource("StandardMaterial3D_g4jjf")

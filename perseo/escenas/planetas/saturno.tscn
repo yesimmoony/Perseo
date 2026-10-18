@@ -1,0 +1,186 @@
+[gd_scene format=3 uid="uid://clykd8q7nfej5"]
+
+[ext_resource type="Script" uid="uid://ctqgacp26e1l" path="res://code/planetas.gd" id="1_vldp5"]
+[ext_resource type="Texture2D" uid="uid://b5enij6v84bul" path="res://arte/texturas/Saturno.jpg" id="2_vldp5"]
+
+[sub_resource type="Shader" id="Shader_vldp5"]
+code = "
+shader_type spatial;
+render_mode unshaded, cull_back;
+
+uniform sampler2D tex_color : source_color, hint_default_white;
+uniform sampler2D tex_ruido : repeat_enable, hint_default_white;
+uniform bool tiene_tex_color = false;
+
+uniform vec3 col_centro : source_color = vec3(1.0, 0.98, 0.7);
+uniform vec3 col_medio1 : source_color = vec3(1.0, 0.35, 0.1);
+uniform vec3 col_medio2 : source_color = vec3(0.95, 0.1, 0.65);
+uniform vec3 col_borde  : source_color = vec3(0.05, 0.45, 1.0);
+
+uniform float influencia_textura = 0.45;
+uniform float distorsion_fluida = 0.25;
+uniform float grano_risografia = 0.10;
+uniform float brillo_superficie = 1.35;
+uniform float intensidad_halo = 1.4;
+uniform float grosor_halo = 2.8;
+
+float hash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+void fragment() {
+	float ndotv = clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0);
+	vec3 luz_dir = normalize(vec3(-0.25, 0.25, 0.93));
+	float volumen = clamp(dot(normalize(NORMAL), luz_dir), 0.0, 1.0);
+	float base_esfera = mix(ndotv, volumen, 0.5);
+	
+	float detalle_tex = 0.0;
+	if (tiene_tex_color) {
+		vec3 tex_base = texture(tex_color, UV).rgb;
+		float lum = dot(tex_base, vec3(0.299, 0.587, 0.114));
+		detalle_tex = (lum - 0.45) * 1.4 * influencia_textura;
+	}
+	
+	float n_fluido = (texture(tex_ruido, UV * 2.5 + vec2(TIME * 0.015, 0.0)).r - 0.5) * distorsion_fluida;
+	float banda = clamp(pow(base_esfera, 0.8) + detalle_tex + n_fluido, 0.0, 1.0);
+	float grano = (hash(UV * 900.0) - 0.5) * grano_risografia;
+	float b = clamp(banda + grano, 0.0, 1.0);
+	
+	vec3 color_final = col_borde;
+	color_final = mix(color_final, col_medio2, smoothstep(0.08, 0.35, b));
+	color_final = mix(color_final, col_medio1, smoothstep(0.35, 0.65, b));
+	color_final = mix(color_final, col_centro, smoothstep(0.65, 0.90, b));
+	
+	float rim = pow(1.0 - ndotv, grosor_halo);
+	vec3 color_rim = mix(col_borde, col_medio1, 0.5);
+	
+	ALBEDO = (color_final * brillo_superficie) + (color_rim * rim * intensidad_halo);
+}
+"
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_5bhyn"]
+frequency = 0.025
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_mvxg6"]
+noise = SubResource("FastNoiseLite_5bhyn")
+seamless = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_o7k0p"]
+render_priority = 0
+shader = SubResource("Shader_vldp5")
+shader_parameter/tex_color = ExtResource("2_vldp5")
+shader_parameter/tex_ruido = SubResource("NoiseTexture2D_mvxg6")
+shader_parameter/tiene_tex_color = true
+shader_parameter/col_centro = Color(1, 0.9647059, 0.8784314, 1)
+shader_parameter/col_medio1 = Color(0.9019608, 0.7647059, 0.47843137, 1)
+shader_parameter/col_medio2 = Color(0.72156864, 0.54509807, 0.2901961, 1)
+shader_parameter/col_borde = Color(0.34901962, 0.24313726, 0.16862746, 1)
+shader_parameter/influencia_textura = 0.55
+shader_parameter/distorsion_fluida = 0.35
+shader_parameter/grano_risografia = 0.1
+shader_parameter/brillo_superficie = 0.8999999999999999
+shader_parameter/intensidad_halo = 0.7
+shader_parameter/grosor_halo = 3.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_bgreg"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_oesa8"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_igvqv"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bgreg"]
+albedo_texture = SubResource("CompressedTexture2D_oesa8")
+emission_enabled = true
+emission = Color(1, 0.54901963, 0, 1)
+emission_energy_multiplier = 0.1
+emission_texture = SubResource("CompressedTexture2D_igvqv")
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_1g3i3"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_oesa8"]
+transparency = 1
+albedo_color = Color(1, 1, 1, 0)
+emission_enabled = true
+emission = Color(0.8769836, 0.8694255, 7.70092e-07, 1)
+emission_energy_multiplier = 5.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1g3i3"]
+render_priority = 1
+transparency = 1
+shading_mode = 0
+grow = true
+grow_amount = 0.02
+stencil_mode = 3
+stencil_flags = 1
+stencil_compare = 5
+stencil_reference = 183
+metadata/_stencil_owned = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_igvqv"]
+next_pass = SubResource("StandardMaterial3D_1g3i3")
+transparency = 1
+albedo_color = Color(1, 1, 1, 0)
+stencil_mode = 1
+stencil_flags = 2
+stencil_reference = 183
+stencil_color = Color(1, 1, 1, 1)
+stencil_outline_thickness = 0.02
+
+[sub_resource type="SphereMesh" id="SphereMesh_7qb0c"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_bgreg"]
+
+[node name="Saturno" type="Node3D" unique_id=748449433]
+script = ExtResource("1_vldp5")
+col_centro = Color(1, 0.9647059, 0.8784314, 1)
+col_medio1 = Color(0.9019608, 0.7647059, 0.47843137, 1)
+col_medio2 = Color(0.72156864, 0.54509807, 0.2901961, 1)
+col_borde = Color(0.34901962, 0.24313726, 0.16862746, 1)
+textura_personalizada = ExtResource("2_vldp5")
+influencia_textura = 0.55
+distorsion_fluida = 0.35
+brillo_superficie = 0.8999999999999999
+intensidad_halo = 0.7
+grosor_halo = 3.0
+color_atmosfera_dia = Color(1, 0.8784314, 0.6, 1)
+color_atmosfera_ocaso = Color(0.8, 0.47843137, 0.2, 1)
+densidad_atmosfera = 1.3
+intensidad_aurora = 2.0
+color_aurora_base = Color(0.7490196, 0.14901961, 1, 1)
+color_aurora_alta = Color(1, 0.2, 0.4, 1)
+latitud_aurora = 0.8
+tiene_anillos = true
+inicio_anillos = 1.15
+fin_anillos = 2.3
+inclinacion_anillos = 27.0
+
+[node name="Saturno" type="Node3D" parent="." unique_id=565425276]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Saturno" unique_id=514287764]
+material_override = SubResource("ShaderMaterial_o7k0p")
+mesh = SubResource("SphereMesh_bgreg")
+surface_material_override/0 = SubResource("StandardMaterial3D_bgreg")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Saturno/MeshInstance3D" unique_id=1388449660]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Saturno/MeshInstance3D/StaticBody3D" unique_id=1632470812]
+shape = SubResource("SphereShape3D_1g3i3")
+
+[node name="Overline" type="Node3D" parent="." unique_id=1782649166]
+visible = false
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="Overline" unique_id=367161757]
+material_override = SubResource("StandardMaterial3D_oesa8")
+material_overlay = SubResource("StandardMaterial3D_igvqv")
+mesh = SubResource("SphereMesh_7qb0c")
+
+[node name="Area3D" type="Area3D" parent="." unique_id=1985651253]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" unique_id=299447484]
+shape = SubResource("SphereShape3D_bgreg")
+
+[node name="Label3D" type="Label3D" parent="." unique_id=1630695169]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+visible = false
+billboard = 1
+text = "Planeta"

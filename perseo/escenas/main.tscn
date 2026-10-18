@@ -1,66 +1,148 @@
 [gd_scene format=3 uid="uid://mehvb6jm2ftu"]
 
 [ext_resource type="Script" uid="uid://b8k1bye2v4xbt" path="res://code/manager.gd" id="1_0kxa1"]
-[ext_resource type="PackedScene" uid="uid://cehfhxfxjmws" path="res://escenas/player/player.tscn" id="2_0kxa1"]
 [ext_resource type="PackedScene" uid="uid://bb8pann6qqh4n" path="res://escenas/planetas/marte.tscn" id="2_jumxm"]
+[ext_resource type="PackedScene" uid="uid://cywte4fhrbmvt" path="res://escenas/planetas/sol.tscn" id="2_woaio"]
+[ext_resource type="PackedScene" uid="uid://dgfg5tgcshgn2" path="res://escenas/planetas/mercurio.tscn" id="3_88j14"]
 [ext_resource type="PackedScene" uid="uid://csqb7umsvdwo2" path="res://escenas/planetas/luna.tscn" id="3_a8p2b"]
+[ext_resource type="PackedScene" uid="uid://bylpv01edtwkn" path="res://escenas/planetas/venus.tscn" id="3_rd5dn"]
 [ext_resource type="Script" uid="uid://wb3esh6s1oje" path="res://code/orbitasrender.gd" id="4_26pgj"]
+[ext_resource type="PackedScene" uid="uid://ca54ul37pwjpr" path="res://escenas/planetas/tierra.tscn" id="4_88j14"]
+[ext_resource type="PackedScene" uid="uid://ckvxalq7jowv7" path="res://escenas/player/cabina.tscn" id="4_dg7ii"]
+[ext_resource type="PackedScene" uid="uid://db5ko2bxih1es" path="res://escenas/taller/sonda.tscn" id="4_lyxkq"]
+[ext_resource type="PackedScene" uid="uid://cpaxwppchnu72" path="res://escenas/planetas/jupiter.tscn" id="4_s4hgp"]
+[ext_resource type="PackedScene" uid="uid://darhk5gxr8emf" path="res://escenas/planetas/urano.tscn" id="4_ymkly"]
+[ext_resource type="Texture2D" uid="uid://csrq7geg5krwv" path="res://arte/Stars 4k HDRI_0.png" id="5_dg7ii"]
 [ext_resource type="Script" uid="uid://c7wwtwe3akjyw" path="res://code/ui.gd" id="5_dkga6"]
+[ext_resource type="PackedScene" uid="uid://c6itsttudmyoq" path="res://escenas/planetas/neptuno.tscn" id="5_jwie6"]
+[ext_resource type="PackedScene" uid="uid://clykd8q7nfej5" path="res://escenas/planetas/saturno.tscn" id="5_r01y2"]
+[ext_resource type="Shader" uid="uid://bjrmk0ick167t" path="res://arte/shaders/estrellas.gdshader" id="6_a5wrc"]
 [ext_resource type="Script" uid="uid://b6qhay0j5m0vf" path="res://code/cursor.gd" id="7_68mvh"]
-[ext_resource type="Texture2D" uid="uid://cxigwtm0f8muj" path="res://icon.png" id="7_o8odp"]
+[ext_resource type="Texture2D" uid="uid://xynadaj3rvoi" path="res://ui/puntero.svg" id="8_68mvh"]
+[ext_resource type="Shader" uid="uid://doovy0gelglrl" path="res://arte/shaders/shader.gdshader" id="11_acisx"]
+[ext_resource type="AudioStream" uid="uid://i6pfp03sibn3" path="res://prologo.mp3" id="12_7an46"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_0kxa1"]
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_ueiap"]
+lifetime_randomness = 0.5
+emission_shape = 2
+emission_sphere_radius = 80000.0
+gravity = Vector3(0, 0, 0)
+scale_min = 500.0
+scale_max = 2200.0
+hue_variation_min = -1.0
+hue_variation_max = 0.99999994
 
-[sub_resource type="Sky" id="Sky_jumxm"]
-sky_material = SubResource("ProceduralSkyMaterial_0kxa1")
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ymkly"]
+render_priority = 0
+shader = ExtResource("6_a5wrc")
+shader_parameter/escala_general = 0.5
+shader_parameter/multiplicador_gigantes = 3.0
+shader_parameter/cantidad_gigantes = 0.01999999955297
+shader_parameter/filo_picos = 0.30000000074508
+shader_parameter/suavidad_borde = 0.01999999955297
+shader_parameter/inclinacion_max = 0.0
+shader_parameter/brillo_estrella = 5.0
+shader_parameter/desfase_arcoiris = 0.249999994412
+shader_parameter/fuerza_glitch_vertical = 0.0
+shader_parameter/col_nucleo = Color(1, 1, 0.9, 1)
+shader_parameter/col_borde_1 = Color(1, 0.15, 0.75, 1)
+shader_parameter/col_borde_2 = Color(0.1, 0.85, 1, 1)
+shader_parameter/col_borde_3 = Color(1, 0.75, 0.1, 1)
+
+[sub_resource type="QuadMesh" id="QuadMesh_jwie6"]
+material = SubResource("ShaderMaterial_ymkly")
+
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_woaio"]
+panorama = ExtResource("5_dg7ii")
+energy_multiplier = 0.5
+
+[sub_resource type="Sky" id="Sky_88j14"]
+sky_material = SubResource("PanoramaSkyMaterial_woaio")
 
 [sub_resource type="Environment" id="Environment_0kxa1"]
 background_mode = 1
-sky = SubResource("Sky_jumxm")
+background_color = Color(0.019607844, 0.015686275, 0.039215688, 1)
+background_energy_multiplier = 0.05
+sky = SubResource("Sky_88j14")
+tonemap_mode = 3
+tonemap_exposure = 0.9
+glow_enabled = true
+glow_levels/1 = 16.0
+glow_levels/2 = 16.0
+glow_levels/3 = 16.0
+glow_levels/4 = 9.92
+glow_levels/5 = 5.02
+glow_levels/6 = 5.16
+glow_levels/7 = 1.0
+glow_normalized = true
+glow_intensity = 0.8
+glow_strength = 1.2
+glow_bloom = 1.0
+glow_hdr_threshold = 4.0
+glow_hdr_scale = 4.0
 
-[sub_resource type="BoxMesh" id="BoxMesh_jumxm"]
+[sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_a5wrc"]
+auto_exposure_enabled = true
+auto_exposure_speed = 2.5
+dof_blur_far_distance = 8192.0
+dof_blur_far_transition = 8192.0
+auto_exposure_min_sensitivity = 800.0
+auto_exposure_max_sensitivity = 1000.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_a5wrc"]
+shader = ExtResource("11_acisx")
+shader_parameter/intensidad_grano = 0.03
+shader_parameter/velocidad_estatica = 5.0
+shader_parameter/fuerza_lineas = 0.03499999921768
+shader_parameter/fuerza_aberracion = 1.0
+shader_parameter/proteger_centro = 0.7
+shader_parameter/brillo = 0.95
+shader_parameter/contraste = 1.05
 
 [node name="Perseo" type="Node3D" unique_id=1612300892]
 script = ExtResource("1_0kxa1")
-sol = ExtResource("2_jumxm")
-mercurio = ExtResource("2_jumxm")
-venus = ExtResource("2_jumxm")
-tierra = ExtResource("2_jumxm")
+sol = ExtResource("2_woaio")
+mercurio = ExtResource("3_88j14")
+venus = ExtResource("3_rd5dn")
+tierra = ExtResource("4_88j14")
 marte = ExtResource("2_jumxm")
-jupiter = ExtResource("2_jumxm")
-saturno = ExtResource("2_jumxm")
-urano = ExtResource("2_jumxm")
-neptuno = ExtResource("2_jumxm")
+jupiter = ExtResource("4_s4hgp")
+saturno = ExtResource("5_r01y2")
+urano = ExtResource("4_ymkly")
+neptuno = ExtResource("5_jwie6")
 luna = ExtResource("3_a8p2b")
-time_speed = 0.01
+escala_planetas = 1000.0
+cabina_scene = ExtResource("4_dg7ii")
+altitud_inicial_marte = 10000.0
+
+[node name="EstrellasFondo" type="GPUParticles3D" parent="." unique_id=970645855]
+amount = 1500
+lifetime = 12.0
+preprocess = 12.0
+visibility_aabb = AABB(-150000, -150000, -150000, 300000, 300000, 300000)
+process_material = SubResource("ParticleProcessMaterial_ueiap")
+draw_pass_1 = SubResource("QuadMesh_jwie6")
+
+[node name="Tallersonda" parent="." unique_id=1793172325 instance=ExtResource("4_lyxkq")]
+visible = false
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=12614364]
 environment = SubResource("Environment_0kxa1")
+camera_attributes = SubResource("CameraAttributesPractical_a5wrc")
 
-[node name="CharacterBody3D" parent="." unique_id=493916035 node_paths=PackedStringArray("webcam_controller") instance=ExtResource("2_0kxa1")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 100)
-webcam_controller = NodePath("")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=377433623]
-transform = Transform3D(100, 0, 0, 0, 10, 0, 0, 0, 100, 0, 0, 0)
-visible = false
-mesh = SubResource("BoxMesh_jumxm")
-
-[node name="Orbitas" type="Node3D" parent="." unique_id=1020565622]
-script = ExtResource("4_26pgj")
-orbit_color = Color(1, 1, 1, 0.627451)
-
-[node name="UI" type="CanvasLayer" parent="." unique_id=1573245572 node_paths=PackedStringArray("orbit_renderer")]
+[node name="UI" type="CanvasLayer" parent="." unique_id=1573245572]
 script = ExtResource("5_dkga6")
-orbit_renderer = NodePath("../Orbitas")
 
 [node name="orbitaboton" type="CheckBox" parent="UI" unique_id=380514944]
+visible = false
 offset_left = 40.0
 offset_top = 41.0
 offset_right = 115.0
 offset_bottom = 72.0
+disabled = true
 
 [node name="Cursor" type="Control" parent="UI" unique_id=657526315]
+visible = false
 layout_mode = 3
 anchors_preset = 8
 anchor_left = 0.5
@@ -74,10 +156,31 @@ offset_bottom = 20.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("7_68mvh")
+velocidad_suave = 40.0
+escala_pinch = Vector2(1.5, 1.5)
 
 [node name="TextureRect" type="TextureRect" parent="UI/Cursor" unique_id=1090350655]
+modulate = Color(1, 1, 1, 0.78431374)
+self_modulate = Color(1, 1, 1, 0.78431374)
 layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-texture = ExtResource("7_o8odp")
+offset_right = 25.0
+offset_bottom = 25.0
+texture = ExtResource("8_68mvh")
 expand_mode = 1
+
+[node name="ColorRect" type="ColorRect" parent="UI" unique_id=206177705]
+material = SubResource("ShaderMaterial_a5wrc")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Orbitas" type="Node3D" parent="." unique_id=1569815209]
+script = ExtResource("4_26pgj")
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=311361766]
+stream = ExtResource("12_7an46")
+volume_db = 1.0
+autoplay = true

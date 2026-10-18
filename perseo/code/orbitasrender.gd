@@ -13,7 +13,7 @@ func _ready() -> void:
 		var mat = StandardMaterial3D.new()
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.albedo_color = orbit_color
+		mat.albedo_color = Color(orbit_color.r, orbit_color.g, orbit_color.b, 0.0)
 		mat.use_point_size = true
 		custom_material = mat
 
@@ -45,8 +45,9 @@ func generate_orbits() -> void:
 
 		orbit_mesh.surface_begin(Mesh.PRIMITIVE_LINE_STRIP)
 		for i in range(points_count + 1):
+			# Adentro del bucle for i in range(points_count + 1):
 			var sample_time: float = (float(i) / float(points_count)) * period
-			var pos: Vector3 = FisicasPlanetas.get_planet_pos_real_au(key, sample_time)
+			var pos: Vector3 = FisicasPlanetas.get_planet_pos_real_au(key, sample_time) * 5000.0
 			orbit_mesh.surface_add_vertex(pos)
 		orbit_mesh.surface_end()
 

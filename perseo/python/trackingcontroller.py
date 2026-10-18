@@ -10,6 +10,13 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
+# --- CALIBRACION DE SENSIBILIDAD Y SUAVIZADO ---
+UMBRAL_ACTIVAR_PINCH = 0.15
+UMBRAL_MANTENER_PINCH = 0.15
+FACTOR_SUAVIZADO = 0.15
+ZONA_MUERTA = 0.003
+TOLERANCIA_CUADROS = 4
+
 # --- CONFIGURACION Y PROCESO ---
 parent_pid = None
 if len(sys.argv) > 1:
@@ -52,8 +59,8 @@ base_options = python.BaseOptions(model_asset_path=MODEL_PATH)
 options = vision.HandLandmarkerOptions(
     base_options=base_options,
     num_hands=2,
-    min_hand_detection_confidence=0.6,
-    min_hand_presence_confidence=0.6,
+    min_hand_detection_confidence=0.5,
+    min_hand_presence_confidence=0.5,
     running_mode=vision.RunningMode.IMAGE,
 )
 detector = vision.HandLandmarker.create_from_options(options)
@@ -63,7 +70,22 @@ UDP_PORT = 4242
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
 DEBUG = True
+
+pos_previa_izq = None
+pinch_sostenido_izq = False
+pinch_sostenido_der = False
+
+cursor_suavizado_x = None
+cursor_suavizado_y = None
+
+cuadros_perdidos_der = 0
+cuadros_perdidos_izq = 0
+
+ultimo_payload_der = {"cursor_active": False, "cursor_x": 0.0, "cursor_y": 0.0, "is_pinching": False}
 
 # --- ESQUELETO ---
 HUESOS_MANO = [
@@ -101,7 +123,6 @@ PUNTA_ANULAR = 16
 BASE_MENIQUE = 17
 MEDIO_MENIQUE = 18
 PUNTA_MENIQUE = 20
-CENTRO_PALMA = 9
 
 
 def distancia(punto_a, punto_b):
@@ -125,16 +146,17 @@ while cap.isOpened():
   results = detector.detect(mp_image)
 
   payload = {
-      "l_action": "NONE",
-      "r_action": "NONE",
-      "dx": 0.0,
-      "dy": 0.0,
-      "palm_size": 0.0,
+      "l_pinch": False,
+      "l_dx": 0.0,
+      "l_dy": 0.0,
       "cursor_active": False,
       "cursor_x": 0.0,
       "cursor_y": 0.0,
       "is_pinching": False,
   }
+
+  dist_actual_izq = 0.0
+  dist_actual_der = 0.0
 
   # --- IDENTIFICACION DE MANOS ---
   if results.hand_landmarks and results.handedness:
@@ -148,29 +170,86 @@ while cap.isOpened():
       elif etiqueta == "Right":
         mano_derecha = results.hand_landmarks[idx]
 
-    # --- MANO IZQUIERDA ---
+    # --- MANO IZQUIERDA (ROTACION / ORBITA) ---
     if mano_izquierda:
-      dedos_levantados = 0
-      if mano_izquierda[PUNTA_INDICE].y < mano_izquierda[MEDIO_INDICE].y:
-        dedos_levantados += 1
-      if mano_izquierda[PUNTA_MAYOR].y < mano_izquierda[MEDIO_MAYOR].y:
-        dedos_levantados += 1
-      if mano_izquierda[PUNTA_ANULAR].y < mano_izquierda[MEDIO_ANULAR].y:
-        dedos_levantados += 1
-      if mano_izquierda[PUNTA_MENIQUE].y < mano_izquierda[MEDIO_MENIQUE].y:
-        dedos_levantados += 1
+      punto_munieca_izq = mano_izquierda[MUNIECA]
 
-      if dedos_levantados <= 1:
-        payload["l_action"] = "TOGGLE_PLAY"
+      mayor_doblado_izq = distancia(
+          mano_izquierda[PUNTA_MAYOR], punto_munieca_izq
+      ) < distancia(mano_izquierda[MEDIO_MAYOR], punto_munieca_izq)
+      anular_doblado_izq = distancia(
+          mano_izquierda[PUNTA_ANULAR], punto_munieca_izq
+      ) < distancia(mano_izquierda[MEDIO_ANULAR], punto_munieca_izq)
+      menique_doblado_izq = distancia(
+          mano_izquierda[PUNTA_MENIQUE], punto_munieca_izq
+      ) < distancia(mano_izquierda[MEDIO_MENIQUE], punto_munieca_izq)
+      tres_dedos_doblados_izq = (
+          mayor_doblado_izq and anular_doblado_izq and menique_doblado_izq
+      )
+
+      indice_estirado_izq = distancia(
+          mano_izquierda[PUNTA_INDICE], punto_munieca_izq
+      ) > distancia(mano_izquierda[MEDIO_INDICE], punto_munieca_izq)
+      pulgar_separado_izq = (
+          distancia(mano_izquierda[PUNTA_PULGAR], mano_izquierda[BASE_MENIQUE])
+          > 0.09
+      )
+
+      dist_actual_izq = distancia(
+          mano_izquierda[PUNTA_PULGAR], mano_izquierda[PUNTA_INDICE]
+      )
+
+      if not pinch_sostenido_izq:
+        if dist_actual_izq < UMBRAL_ACTIVAR_PINCH:
+          pinch_sostenido_izq = True
+          pos_previa_izq = None
       else:
-        payload["l_action"] = "ZOOM"
-        tamanio_palma = distancia(
-            mano_izquierda[MUNIECA], mano_izquierda[CENTRO_PALMA]
-        )
-        payload["palm_size"] = round(tamanio_palma, 4)
+        if dist_actual_izq > UMBRAL_MANTENER_PINCH:
+          pinch_sostenido_izq = False
+          pos_previa_izq = None
 
-    # --- MANO DERECHA ---
+      postura_activa_izq = (
+          tres_dedos_doblados_izq
+          and indice_estirado_izq
+          and (pulgar_separado_izq or pinch_sostenido_izq)
+      )
+
+      if postura_activa_izq:
+        centro_x = (
+            mano_izquierda[PUNTA_PULGAR].x + mano_izquierda[PUNTA_INDICE].x
+        ) / 2.0
+        centro_y = (
+            mano_izquierda[PUNTA_PULGAR].y + mano_izquierda[PUNTA_INDICE].y
+        ) / 2.0
+
+        if pinch_sostenido_izq:
+          payload["l_pinch"] = True
+          if pos_previa_izq:
+            prev_x, prev_y = pos_previa_izq
+            delta_x = centro_x - prev_x
+            delta_y = centro_y - prev_y
+
+            delta_x = max(-0.04, min(0.04, delta_x))
+            delta_y = max(-0.04, min(0.04, delta_y))
+
+            if abs(delta_x) > ZONA_MUERTA:
+              payload["l_dx"] = round(delta_x, 4)
+            if abs(delta_y) > ZONA_MUERTA:
+              payload["l_dy"] = round(delta_y, 4)
+
+          pos_previa_izq = (centro_x, centro_y)
+        else:
+          pos_previa_izq = None
+      else:
+        pinch_sostenido_izq = False
+        pos_previa_izq = None
+    else:
+      pinch_sostenido_izq = False
+      pos_previa_izq = None
+
+    # --- MANO DERECHA (CURSOR Y SELECCION / PAN) ---
     if mano_derecha:
+      cuadros_perdidos_der = 0
       punto_munieca = mano_derecha[MUNIECA]
 
       mayor_doblado = distancia(
@@ -189,31 +268,66 @@ while cap.isOpened():
       ) > distancia(mano_derecha[MEDIO_INDICE], punto_munieca)
       pulgar_separado = (
           distancia(mano_derecha[PUNTA_PULGAR], mano_derecha[BASE_MENIQUE])
-          > 0.12
+          > 0.08
       )
 
+      dist_actual_der = distancia(
+          mano_derecha[PUNTA_PULGAR], mano_derecha[PUNTA_INDICE]
+      )
+
+      if not pinch_sostenido_der:
+        if dist_actual_der < UMBRAL_ACTIVAR_PINCH:
+          pinch_sostenido_der = True
+      else:
+        if dist_actual_der > UMBRAL_MANTENER_PINCH:
+          pinch_sostenido_der = False
+
       postura_activa = (
-          tres_dedos_doblados and indice_estirado and pulgar_separado
+          tres_dedos_doblados
+          and indice_estirado
+          and (pulgar_separado or pinch_sostenido_der)
       )
 
       if postura_activa:
-        distancia_pinch = distancia(
-            mano_derecha[PUNTA_PULGAR], mano_derecha[PUNTA_INDICE]
-        )
-        haciendo_pinch = distancia_pinch < 0.055
-
         punto_puntero = mano_derecha[PUNTA_INDICE]
+
+        if cursor_suavizado_x is None:
+          cursor_suavizado_x = punto_puntero.x
+          cursor_suavizado_y = punto_puntero.y
+        else:
+          cursor_suavizado_x += (
+              punto_puntero.x - cursor_suavizado_x
+          ) * FACTOR_SUAVIZADO
+          cursor_suavizado_y += (
+              punto_puntero.y - cursor_suavizado_y
+          ) * FACTOR_SUAVIZADO
+
         payload["cursor_active"] = True
-        payload["cursor_x"] = round(punto_puntero.x, 4)
-        payload["cursor_y"] = round(punto_puntero.y, 4)
-        payload["is_pinching"] = haciendo_pinch
-        payload["r_action"] = "PINCH" if haciendo_pinch else "APUNTANDO"
+        payload["cursor_x"] = round(cursor_suavizado_x, 4)
+        payload["cursor_y"] = round(cursor_suavizado_y, 4)
+        payload["is_pinching"] = pinch_sostenido_der
+
+        ultimo_payload_der = payload.copy()
       else:
+        pinch_sostenido_der = False
         payload["cursor_active"] = False
-        payload["cursor_x"] = 0.0
-        payload["cursor_y"] = 0.0
-        payload["is_pinching"] = False
-        payload["r_action"] = "NINGUNO"
+        cursor_suavizado_x = None
+        cursor_suavizado_y = None
+    else:
+      cuadros_perdidos_der += 1
+      if (
+          cuadros_perdidos_der <= TOLERANCIA_CUADROS
+          and ultimo_payload_der["cursor_active"]
+      ):
+        payload["cursor_active"] = ultimo_payload_der["cursor_active"]
+        payload["cursor_x"] = ultimo_payload_der["cursor_x"]
+        payload["cursor_y"] = ultimo_payload_der["cursor_y"]
+        payload["is_pinching"] = ultimo_payload_der["is_pinching"]
+      else:
+        pinch_sostenido_der = False
+        payload["cursor_active"] = False
+        cursor_suavizado_x = None
+        cursor_suavizado_y = None
 
   # --- ENVIO DE DATOS ---
   sock.sendto(json.dumps(payload).encode(), (UDP_IP, UDP_PORT))
@@ -237,25 +351,22 @@ while cap.isOpened():
           cy = int(punto.y * alto)
           cv2.circle(image, (cx, cy), 4, (0, 255, 0), -1)
 
-    color_estado = (140, 140, 140)
+    color_cursor = (140, 140, 140)
     if payload.get("cursor_active"):
-      color_estado = (0, 0, 255) if payload.get("is_pinching") else (0, 255, 0)
+      color_cursor = (0, 0, 255) if payload.get("is_pinching") else (0, 255, 0)
       pos_mira_x = int(payload["cursor_x"] * ancho)
       pos_mira_y = int(payload["cursor_y"] * alto)
-      cv2.circle(image, (pos_mira_x, pos_mira_y), 14, color_estado, 2)
-      cv2.circle(image, (pos_mira_x, pos_mira_y), 3, color_estado, -1)
+      cv2.circle(image, (pos_mira_x, pos_mira_y), 14, color_cursor, 2)
+      cv2.circle(image, (pos_mira_x, pos_mira_y), 3, color_cursor, -1)
 
-    texto_estado = (
-        f"Mano D: {payload['r_action']} | Click: {payload.get('is_pinching')}"
+    texto_izq = f"Izq Pinch: {payload['l_pinch']} (dist: {round(dist_actual_izq, 3)})"
+    texto_der = f"Der Pinch: {payload['is_pinching']} (dist: {round(dist_actual_der, 3)})"
+
+    cv2.putText(
+        image, texto_izq, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 200, 0), 2
     )
     cv2.putText(
-        image,
-        texto_estado,
-        (10, 60),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.7,
-        color_estado,
-        2,
+        image, texto_der, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color_cursor, 2
     )
     cv2.imshow("Hand Tracking Debug", image)
 

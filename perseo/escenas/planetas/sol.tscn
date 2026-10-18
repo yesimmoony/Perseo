@@ -1,0 +1,176 @@
+[gd_scene format=3 uid="uid://cywte4fhrbmvt"]
+
+[ext_resource type="Script" uid="uid://ctqgacp26e1l" path="res://code/planetas.gd" id="1_fqfkk"]
+[ext_resource type="Texture2D" uid="uid://cvixq80c1k24m" path="res://arte/texturas/Marte.jpg" id="2_fqfkk"]
+
+[sub_resource type="Shader" id="Shader_fqfkk"]
+code = "
+shader_type spatial;
+render_mode unshaded;
+
+uniform sampler2D tex_color : source_color;
+uniform sampler2D tex_ruido : repeat_enable;
+
+uniform vec3 col_centro : source_color = vec3(1.0, 0.98, 0.7);
+uniform vec3 col_medio1 : source_color = vec3(1.0, 0.35, 0.1);
+uniform vec3 col_medio2 : source_color = vec3(0.95, 0.1, 0.65);
+uniform vec3 col_borde  : source_color = vec3(0.05, 0.45, 1.0);
+
+uniform float influencia_textura = 0.65;
+uniform float distorsion_fluida = 0.25;
+uniform float grano_risografia = 0.10;
+uniform float brillo_superficie = 0.85;
+uniform float intensidad_halo = 0.6;
+uniform float grosor_halo = 3.5;
+
+float hash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+void fragment() {
+	vec3 tex_base = texture(tex_color, UV).rgb;
+	float mapa_superficie = dot(tex_base, vec3(0.299, 0.587, 0.114));
+	float n_fluido = texture(tex_ruido, UV * 3.0 + vec2(TIME * 0.015, 0.0)).r;
+	
+	vec3 dir_luz_falsa = normalize(vec3(-0.5, 0.5, 0.7));
+	float luz_esfera = clamp(dot(NORMAL, dir_luz_falsa) * 0.5 + 0.5, 0.0, 1.0);
+	float ndotv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+	
+	float base_gradiente = mix(luz_esfera * ndotv, mapa_superficie, influencia_textura);
+	float banda = clamp(base_gradiente + (n_fluido - 0.5) * distorsion_fluida, 0.0, 1.0);
+	
+	float grano = (hash(FRAGCOORD.xy * 0.5 + UV * 500.0) - 0.5) * grano_risografia;
+	float b = clamp(banda + grano, 0.0, 1.0);
+	
+	vec3 color_final = col_borde;
+	color_final = mix(color_final, col_medio2, smoothstep(0.12, 0.38, b));
+	color_final = mix(color_final, col_medio1, smoothstep(0.38, 0.65, b));
+	color_final = mix(color_final, col_centro, smoothstep(0.65, 0.88, b));
+	
+	float rim = pow(1.0 - ndotv, grosor_halo);
+	ALBEDO = (color_final * brillo_superficie) + (col_borde * rim * intensidad_halo);
+}
+"
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_ysg2x"]
+frequency = 0.025
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_lokgn"]
+noise = SubResource("FastNoiseLite_ysg2x")
+seamless = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_e6mro"]
+render_priority = 0
+shader = SubResource("Shader_fqfkk")
+shader_parameter/tex_color = ExtResource("2_fqfkk")
+shader_parameter/tex_ruido = SubResource("NoiseTexture2D_lokgn")
+shader_parameter/col_centro = Color(1, 0.99215686, 0.9607843, 1)
+shader_parameter/col_medio1 = Color(1, 0.8509804, 0.23921569, 1)
+shader_parameter/col_medio2 = Color(1, 0.41960785, 0, 1)
+shader_parameter/col_borde = Color(0.8, 0.06666667, 0, 1)
+shader_parameter/influencia_textura = 0.45
+shader_parameter/distorsion_fluida = 0.65
+shader_parameter/grano_risografia = 0.1
+shader_parameter/brillo_superficie = 4.0
+shader_parameter/intensidad_halo = 2.5
+shader_parameter/grosor_halo = 5.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_bgreg"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_oesa8"]
+load_path = "res://.godot/imported/Mars.jpg-57b41440e624362d5f4ba8b2d8a8dff0.s3tc.ctex"
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_igvqv"]
+load_path = "res://.godot/imported/Mars.jpg-57b41440e624362d5f4ba8b2d8a8dff0.s3tc.ctex"
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bgreg"]
+albedo_texture = SubResource("CompressedTexture2D_oesa8")
+emission_enabled = true
+emission = Color(1, 0.54901963, 0, 1)
+emission_energy_multiplier = 0.1
+emission_texture = SubResource("CompressedTexture2D_igvqv")
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_1g3i3"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_oesa8"]
+transparency = 1
+albedo_color = Color(1, 1, 1, 0)
+emission_enabled = true
+emission = Color(0.8769836, 0.8694255, 7.70092e-07, 1)
+emission_energy_multiplier = 5.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1g3i3"]
+render_priority = 1
+transparency = 1
+shading_mode = 0
+grow = true
+grow_amount = 0.02
+stencil_mode = 3
+stencil_flags = 1
+stencil_compare = 5
+stencil_reference = 183
+metadata/_stencil_owned = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_igvqv"]
+next_pass = SubResource("StandardMaterial3D_1g3i3")
+transparency = 1
+albedo_color = Color(1, 1, 1, 0)
+stencil_mode = 1
+stencil_flags = 2
+stencil_reference = 183
+stencil_color = Color(1, 1, 1, 1)
+stencil_outline_thickness = 0.02
+
+[sub_resource type="SphereMesh" id="SphereMesh_7qb0c"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_bgreg"]
+
+[node name="Sol" type="Node3D" unique_id=748449433]
+script = ExtResource("1_fqfkk")
+col_centro = Color(1, 0.99215686, 0.9607843, 1)
+col_medio1 = Color(1, 0.8509804, 0.23921569, 1)
+col_medio2 = Color(1, 0.41960785, 0, 1)
+col_borde = Color(0.8, 0.06666667, 0, 1)
+textura_personalizada = ExtResource("2_fqfkk")
+distorsion_fluida = 0.65
+brillo_superficie = 4.0
+intensidad_halo = 2.5
+grosor_halo = 5.0
+color_atmosfera_dia = Color(1, 0.53333336, 0, 1)
+color_atmosfera_ocaso = Color(1, 0.11764706, 0, 1)
+altura_atmosfera = 1.28
+densidad_atmosfera = 0.4
+intensidad_aurora = 3.0
+color_aurora_base = Color(1, 0.8, 0, 1)
+color_aurora_alta = Color(1, 0, 0.33333334, 1)
+latitud_aurora = 0.65
+
+[node name="Sol" type="Node3D" parent="." unique_id=565425276]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Sol" unique_id=514287764]
+material_override = SubResource("ShaderMaterial_e6mro")
+mesh = SubResource("SphereMesh_bgreg")
+surface_material_override/0 = SubResource("StandardMaterial3D_bgreg")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Sol/MeshInstance3D" unique_id=1388449660]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Sol/MeshInstance3D/StaticBody3D" unique_id=1632470812]
+shape = SubResource("SphereShape3D_1g3i3")
+
+[node name="Overline" type="Node3D" parent="." unique_id=1782649166]
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="Overline" unique_id=367161757]
+material_override = SubResource("StandardMaterial3D_oesa8")
+material_overlay = SubResource("StandardMaterial3D_igvqv")
+mesh = SubResource("SphereMesh_7qb0c")
+
+[node name="Area3D" type="Area3D" parent="." unique_id=1985651253]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" unique_id=299447484]
+shape = SubResource("SphereShape3D_bgreg")
+
+[node name="Label3D" type="Label3D" parent="." unique_id=1630695169]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+visible = false
+billboard = 1
+text = "Planeta"
