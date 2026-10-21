@@ -269,7 +269,6 @@ func _aplicar_shader_a_mallas() -> void:
 	var malla_principal: MeshInstance3D = null
 	for child in find_children("*", "MeshInstance3D", true, false):
 		if child is MeshInstance3D and child.mesh and child.name != "Overline" and child.name != "AtmosferaLuna" and child.get_parent().name != "Overline":
-			# Limpiamos cualquier material viejo que esté bloqueando el shader
 			child.material_override = _mat_luna
 			for i in range(child.get_surface_override_material_count()):
 				child.set_surface_override_material(i, null)

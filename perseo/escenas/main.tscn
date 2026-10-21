@@ -112,8 +112,8 @@ urano = ExtResource("4_ymkly")
 neptuno = ExtResource("5_jwie6")
 luna = ExtResource("3_a8p2b")
 escala_planetas = 1000.0
-cabina_scene = ExtResource("4_dg7ii")
 altitud_inicial_marte = 10000.0
+cabina_scene = ExtResource("4_dg7ii")
 
 [node name="EstrellasFondo" type="GPUParticles3D" parent="." unique_id=970645855]
 amount = 1500
